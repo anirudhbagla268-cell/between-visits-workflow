@@ -383,14 +383,16 @@
     clear($("gate")).appendChild(table(["Practice", "Decision", "Why"], held.map((g) => { const k = kind(g); return [name(g.contact_id), status(k === "deferred" ? "warning" : "critical", k), el("div", { class: "reasons" }, (g.reasons || []).map((r) => el("span", { class: "reason", text: r })))]; }), { empty: "Nothing was held back in the last run.", nowrap: [1] }));
 
     // ---------- collapsed detail ----------
-    const outcomes = Object.entries(calls.by_outcome || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: outcomeText(k), count: v }));
+    const outcomeCounts = {};
+    Object.entries(calls.by_outcome || {}).forEach(([k, v]) => { const l = outcomeText(k); outcomeCounts[l] = (outcomeCounts[l] || 0) + v; });
+    const outcomes = Object.entries(outcomeCounts).sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ label: l, count: v }));
     bars($("outcomes"), outcomes, "outcomes, all attempts");
     const cats = Object.entries(calls.by_failure_category || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: categoryText(k), count: v }));
     bars($("fail-bars"), cats, "failure categories");
     $("outcomes-count").textContent = plural(calls.attempts || 0, "email");
     $("queue-count").textContent = plural(queue.length, "practice");
     clear($("queue")).appendChild(table(["Practice", "Attempts", "Last outcome", "Next attempt"], queue.map((q) => [q.name + (q.external_id ? " · " + q.external_id : ""), q.attempts, outcomeText(q.last_outcome) || "–", q.next_attempt_at ? fmtTime(q.next_attempt_at) : "when the window opens"]), { num: [1], empty: "Queue is empty.", nowrap: [3] }));
-    $("interviews-count").textContent = plural(interviews.length, "booked");
+    $("interviews-count").textContent = plural(interviews.length, "booking");
     clear($("interviews")).appendChild(table(["Practice", "Scheduled for", "Status", "Draft"], interviews.map((i) => [name(i.contact_id), fmtTime(i.scheduled_for), i.status === "approved" ? status("good", "approved by " + i.approved_by) : status("warning", "awaiting approval"), i.calendar_event_ref ? el("a", { href: REPO + "/blob/main/" + i.calendar_event_ref.replace(/^file:/, ""), text: ".ics", target: "_blank", rel: "noopener" }) : "–"]), { nowrap: [1] }));
     const dStatus = (t) => t.delivery_status === "delivered" ? status("good", "delivered") : t.delivery_status === "held_pii_review" ? status("warning", "held (PII)") : t.delivery_status === "failed" ? status("critical", "failed") : status("neutral", t.delivery_status);
     $("transcripts-count").textContent = (tr.delivered || 0) + " delivered · " + (tr.held_pii_review || 0) + " held · " + (tr.failed || 0) + " failed";
